@@ -63,8 +63,8 @@ A tape of everything the operator has written or said (documents, transcripts), 
 | Scale | Chunks | Vectors (1024-d int8) | Coarse (256-d int8) | Embedding time at the 0.6B rate | at ~4× slower (4B) |
 |---|---|---|---|---|---|
 | Estate today | 3,585 | 3.7 MB | 0.9 MB | 3 min | 12 min |
-| Corpus #1 extracted (172M tok) | ≈ 250k | 256 MB | 64 MB | 3.6 h | ≈ 15 h |
-| Corpus #1 raw (1.75B tok) | ≈ 2.5M | 2.6 GB | 640 MB | 37 h | ≈ 150 h (batch over a week, or 0.6B for raw + 4B for extracted) |
+| Corpus #1 extracted (172M tok) | ≈ 250k at 700 tokens, ≈ 335k at 512 | 256–343 MB | 64–86 MB | 3.6 h | ≈ 15 h |
+| Corpus #1 raw (1.75B tok) | ≈ 2.5M at 700, ≈ 3.4M at 512 | 2.6–3.5 GB | 0.6–0.9 GB | 37 h | ≈ 150 h (batch over a week, or 0.6B for raw + 4B for extracted) |
 
 ---
 
@@ -259,7 +259,7 @@ N subagents at 1M tokens = N× read rate and N× addressable index; effective sy
 ### 8.2 The sentry (gear one, world rate)
 One daemon principal `connectome-sentry` (kind `daemon`, lane `sentry`) per bus:
 1. Tails `broadcast.db` and every registered room DB from its cursors at 250 ms (an `await`-style loop; the hint is best-effort, the cursor query is truth).
-2. **Places** every new message body (chunked at 700) into the field: residual, community, bridges, provenance edges to documents.
+2. **Places** every new message body (chunked at the corpus budget, §3.2) into the field: residual, community, bridges, provenance edges to documents.
 3. **Judges** with Tier-0 rules first (mentions, lane keywords, claim releases, pins), then one shared flash-class judge (local 9B at $0, or GLM-5.3-Flash) only for messages whose residual exceeds the bar — hypercelld's measured lesson: naive watching costs ~10× turn-based; ticks and retellings never wake a model; one sentry per bus, not one per watcher.
 4. **Routes by residual per lane:** a finding is forwarded to a lane only if it is NOVEL or BRIDGING relative to that lane's own partition paths (what it has read). This is what keeps K_eff up: CORTEX measured seat correlation 0.5–0.9 → effective seats 1.1–1.6 for four; broadcasting everything to everyone collapses eight heads into one.
 5. **Emits typed verdicts, never prose:** `x-sentry {decision: ignore|note|wake, cited_ids, residual, community, lane_targets}` as directed, priority-1 messages (so `check`, the Stop-hook, and `await --for-me` all ring), plus a per-lane **digest artifact** (≤ 10k tokens, blake2b-pinned) rewritten only on `note|wake`. A suppressed wake still leaves an audit row.
