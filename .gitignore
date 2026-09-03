@@ -10,6 +10,15 @@ proto/build.log
 proto/results_run*.log
 # generated page (embeds corpus snippets)
 scene.html
+# native build artifacts (cmake + ninja); the source of truth is native/
+build/
+build-*/
+*.exe
+*.obj
+*.lib
+*.pdb
+*.exp
+CMakeUserPresets.json
 # secrets
 .env
 *.key

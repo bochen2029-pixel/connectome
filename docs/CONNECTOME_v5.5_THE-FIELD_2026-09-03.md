@@ -125,7 +125,16 @@ recall_dense(q):
   s2 = GEMM(int8 X1024[C], q1024)                # exact rescoring of 2,048 rows (NVMe-mapped beyond VRAM)
   return top_k(s2, 100)
 ```
-Exact, no ANN index to build or rot; brute force is the measured floor (4.88 ms at 1.67M×384). sqlite-vec holds the same int8 vectors on disk for portability [V].
+Exact, no ANN index to build or rot; brute force is the measured floor (4.88 ms at 1.67M×384 [M, CORTEX]). sqlite-vec holds the same int8 vectors on disk for portability [V].
+
+**Implemented and gated at M0, measured on this box 2026-09-03 [M]** (`native/`, CUDA 13.1, warp-per-row `__dp4a`, fixed-topology shuffle reduction):
+
+| coarse pass over | CPU reference | GPU, copied per query | **GPU resident** | exactness |
+|---|---|---|---|---|
+| 250k chunks (30.5 MiB) | 9.00 ms | 13.05 ms | **0.29 ms — 102 GiB/s** | bit-identical |
+| 2M chunks (244 MiB) | 68.37 ms | 88.61 ms | **2.02 ms — 118 GiB/s** | bit-identical |
+
+Three consequences, all measured rather than argued. **(a)** An exact scan of two million chunks costs two milliseconds, so the ANN index the rest of the field builds is unnecessary at every scale this design targets; extrapolating the resident row to §4.3's largest tier (2×10⁷ chunks, 2.5 GB coarse) gives ≈ 21 ms per query [D]. **(b)** The transfer *is* the cost: a GPU path that re-uploads the matrix per query loses to the CPU (13.05 vs 9.00 ms), which is why the coarse head is resident at every corpus scale (§10.3) and why the benchmark keeps the losing row in view. **(c)** Determinism is a property of the arithmetic, not a tolerance: int32 sums of int8 products under a fixed reduction topology with no float atomics make the GPU result equal the CPU reference exactly, on every run and every supported architecture, which is what makes the M0 gate meaningful.
 
 ### 5.5 Fusion and rent
 Convex combination of min-max-normalised scores (α ≈ 0.5, tuned by the loss), not RRF: CC beats RRF in and out of domain and RRF is k-sensitive [V] arXiv:2210.11934; the 2026-04 benchmark gives R@5 BM25 .644, dense .587, RRF .695, **CC .726**, hybrid+rerank .816 [V] arXiv:2604.01733. Graph firing enters as a third normalised score. **F-RENT:** every signal must reduce future residual (and the label-free recall proxies of §12) beyond the best pair without it, or it leaves the hot path; its additive contribution is printed on every answer.
@@ -359,7 +368,7 @@ There is no kickoff document during the build. Each milestone has a gate script 
 
 **Exists [M]:** `connectome.py` (build, ask, place, codex, dossier, render, mcp, providers) with stamps and quantifier pinning; the proto caches; the page; F-PREFIX and F-CONVERGE first numbers; the Louvain and δ measurements.
 
-- **M0 · Native skeleton.** CMake project in the Buddhabrot conventions; `cx-tape` reading Scriptorium tapes and writing the journal; `cx-index` int8 two-pass scan over the estate; a `doctor` verb (servers, models, ports, VRAM, keys). *Gate:* `gate.ps1 -Milestone M0` proves byte-identical scan results across two runs and against the numpy reference.
+- **M0 · Native skeleton. ✓ PASSING (2026-09-03).** CMake project in the Buddhabrot conventions; `cx-index`'s int8 two-pass scan with a resident device matrix and a deterministic top-k; contract headers for `cx-tape`, `cx-field`, `cx-map`, `cx-place` compiled and invariant-checked; a `doctor` verb (device, model-server ports, fixed-path organs, corpus). *Gate:* `scripts/gate.ps1 -Milestone M0` — 5/5 ctest (parity, determinism, tie-break, planted-row two-pass, contracts), cross-process digest `9574b5dae6191b39` identical in two separate processes, doctor reporting. Receipt and numbers: `native/README.md`. *Carried to M1:* the tape reader itself (the scan currently runs on a synthetic corpus and on vectors handed to it).
 - **M1 · The loss.** The temporal-holdout harness: build on documents before t, score after t, shuffled control; F-CONVERGE and F-EMBED/F-PREFIX/F-CHUNK run under it with WeMM-4B and Qwen3-Embedding-4B. *Gate:* the harness reproduces §0's numbers on the estate and emits the comparison for each embedder.
 - **M2 · The frozen field.** Consensus Leiden partition/v1 with hierarchy and names; assignment and bounded refinement; the drift meter; provenance slice; support gating; the position ledger with typed operators and audit rows. *Gate:* F-LAYOUT-STABLE on a quarter of simulated growth (held-out documents replayed in time order).
 - **M3 · The map and the viewer.** UMAP-3 angles at version events; analytic Lorentz placement; Procrustes and hysteresis; `cx-view` with the ball, layers, time slider, inspector, id picking. *Gate:* 60 fps at the estate's size and at a 10× synthetic inflation; F-3D-VS-2D harness runnable.
@@ -389,6 +398,7 @@ There is no kickoff document during the build. Each milestone has a gate script 
 | Gromov δ | 2026-09-03 | this box, 2,000 chunks | δ/diam 0.054 p99 (control 0.029) | §3, §6.4 |
 | F-PREFIX | 2026-09-03 | this box, n = 28 | recall@10 0.750 → 0.786 | §5.1 |
 | Embedding throughput; `place` latency | 2026-09-03 | this box | 18.7 chunks/s; 3.0 s / 16 chunks | §3, §7.1 |
+| Native two-pass scan (M0) | 2026-09-03 | this box, `native/`, CUDA 13.1 | resident coarse pass 0.29 ms @ 250k, 2.02 ms @ 2M (102–118 GiB/s); copy-per-query 13.05 ms loses to CPU 9.00 ms; all paths bit-identical | §5.4, §10, §13 |
 | Local readers; prompt cache; speculation | 2026-09-03 | this box, llama.cpp b9627 | 9B 4,148 / 71; prefix re-prefill 16 ms; draft acceptance 70.8 % for +8 % | §3 |
 | WeMM-Embedding-4B / 9B | 2026-08 | huggingface.co/tencent/WeMM-Embedding-4B, -9B; arXiv:2608.24053 | MMEB-v3 58.2 / 59.5; Qwen3.5-based; MRL; Apache-2.0 | §5.1 |
 | Qwen3-Embedding family | 2025-06 | huggingface.co/Qwen/Qwen3-Embedding-0.6B | 64.33 / 69.45 / 70.58; `Instruct:…\nQuery:`; docs no prefix | §5.1 |

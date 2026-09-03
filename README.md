@@ -102,7 +102,27 @@ python connectome.py providers                 the priced lane table (unknown or
 claude mcp add connectome -- python C:/connectome/connectome.py mcp
 ```
 
-**Not yet built:** the native C++/CUDA core and viewer, the frozen versioned partition, the analytic Lorentz placement, the position ledger, the sentry on the bus, and the 10¹⁰-token tier. Those are the milestones below. The browser page shipped here is a prototype and becomes a thin export.
+**Not yet built:** the frozen versioned partition, the analytic Lorentz placement, the position ledger, the sentry on the bus, the native viewer, and the 10¹⁰-token tier. Those are the milestones below. The browser page shipped here is a prototype and becomes a thin export.
+
+### The native core — M0 gate passing
+
+[`native/`](native/) holds the C++20/CUDA core, built in the operator's own conventions (archs 89/90/120, static runtimes, Ninja from the VS 2022 environment, machine-checkable gates).
+
+```powershell
+scripts\build.ps1 -Native          # configure + build for this machine's GPU
+scripts\gate.ps1 -Milestone M0     # 5/5 ctest, cross-process digest equality, doctor
+build\cx.exe doctor                # what this machine has and is missing
+build\cx.exe bench --n 2000000     # the two-pass scan, measured
+```
+
+The int8 two-pass scan is implemented and gated. Measured on this box, 2026-09-03:
+
+| coarse pass over | CPU reference | GPU, copied per query | **GPU resident** |
+|---|---|---|---|
+| 250k chunks (30.5 MiB) | 9.00 ms | 13.05 ms | **0.29 ms — 102 GiB/s** |
+| 2M chunks (244 MiB) | 68.37 ms | 88.61 ms | **2.02 ms — 118 GiB/s** |
+
+Every path returns **bit-identical** scores: int32 sums of int8 products with a fixed-topology warp reduction and no float atomics, so determinism is a property of the arithmetic rather than a tolerance. An exact brute-force scan of two million chunks in two milliseconds is why there is no ANN index here to build, tune, or let rot. The middle column is kept in the benchmark on purpose: copying the matrix per query loses to the CPU, which is precisely the shape the design refuses.
 
 ---
 
