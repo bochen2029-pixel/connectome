@@ -1,4 +1,6 @@
 # NEXT — where this stands and how to proceed
+**Updated 2026-09-03: the design is now `docs/CONNECTOME_v5.5_THE-FIELD_2026-09-03.md` (v4 and v5 skipped by operator directive; v0.1–v0.3 are lineage). Read v5.5 first; its §13 build order supersedes the recommendation below, which is kept as the 2026-09-01 record. The reading receipt for every source document is `docs/READING-RECEIPT_2026-09-03.md`.**
+
 **Written 2026-09-01 (late), for whoever opens this repo next: Bo, a new session, or anyone else. Nothing here is private. Read this, then `README.md`, then `docs/` in version order.**
 
 ## Where it stands tonight
