@@ -1,0 +1,16 @@
+# the store is a fold over private files; never published
+store/
+# chunk and embedding caches (private corpus content)
+proto/_chunks/
+proto/_embed_cache.npz*
+proto/_test/
+proto/scene.json
+proto/scene.html
+proto/build.log
+proto/results_run*.log
+# generated page (embeds corpus snippets)
+scene.html
+# secrets
+.env
+*.key
+__pycache__/

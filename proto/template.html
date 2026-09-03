@@ -1,0 +1,383 @@
+<title>Estate Connectome</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #0A1424;
+    --panel: rgba(15, 29, 51, 0.92);
+    --panel-solid: #0F1D33;
+    --rule: #27415F;
+    --rule-soft: #1B2F4B;
+    --ink: #E7EEF7;
+    --muted: #93A7C1;
+    --dim: #5F7594;
+    --amber: #FFB454;
+    --amber-soft: rgba(255, 180, 84, 0.18);
+    --chip: #16294A;
+    --chip-on: #1F3A66;
+    --focus: #7CC4FF;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 13px; overflow: hidden; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { outline: none; }
+  a { color: var(--focus); }
+  button, input[type="text"] { font: inherit; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--rule); backdrop-filter: blur(6px); }
+  .label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  /* title block — top left */
+  #title { left: 18px; top: 18px; width: 336px; padding: 14px 16px 12px; }
+  #title h1 { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.05; margin: 6px 0 4px; letter-spacing: -0.01em; text-wrap: balance; }
+  #title h1 em { font-style: italic; color: var(--focus); }
+  #title .sub { font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--muted); margin: 0 0 12px; line-height: 1.35; }
+  #title .grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-family: var(--mono); font-size: 11px; border-top: 1px solid var(--rule-soft); padding-top: 10px; font-variant-numeric: tabular-nums; }
+  #title .grid .k { color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; font-size: 9.5px; padding-top: 2px; }
+  #title .grid .v { color: var(--ink); }
+  #title .note { margin-top: 10px; border-top: 1px solid var(--rule-soft); padding-top: 8px; font-family: var(--mono); font-size: 10px; color: var(--dim); letter-spacing: 0.06em; line-height: 1.5; }
+  /* control rail — top right */
+  #rail { right: 18px; top: 18px; width: 330px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  #search { display: flex; gap: 6px; }
+  #search input { flex: 1; background: #0B1729; color: var(--ink); border: 1px solid var(--rule); padding: 7px 9px; font-family: var(--mono); font-size: 12px; }
+  #search input:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+  #search button, .btn { background: var(--chip); color: var(--ink); border: 1px solid var(--rule); padding: 6px 10px; cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; }
+  #search button:hover, .btn:hover { background: var(--chip-on); }
+  #search button:focus-visible, .btn:focus-visible, .chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  #hits { font-family: var(--mono); font-size: 10.5px; color: var(--muted); min-height: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--chip); border: 1px solid var(--rule); color: var(--muted); padding: 4px 9px; cursor: pointer; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; user-select: none; }
+  .chip.on { background: var(--chip-on); color: var(--ink); }
+  .chip .sw { width: 18px; height: 3px; background: currentColor; display: inline-block; }
+  .chip.bridge.on { color: var(--amber); border-color: rgba(255,180,84,0.5); }
+  #time { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+  #time input[type="range"] { width: 100%; accent-color: var(--focus); }
+  #time .t { font-family: var(--mono); font-size: 11px; color: var(--ink); font-variant-numeric: tabular-nums; min-width: 82px; text-align: right; }
+  /* legend — bottom left */
+  #legend { left: 18px; bottom: 18px; width: 336px; max-height: 42vh; padding: 12px 14px; overflow: auto; }
+  #legend ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  #legend li { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: baseline; cursor: pointer; padding: 3px 4px; border: 1px solid transparent; }
+  #legend li:hover { border-color: var(--rule-soft); }
+  #legend li.off { opacity: 0.35; }
+  #legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; position: relative; top: 1px; }
+  #legend .lab { font-size: 12px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #legend .n { font-family: var(--mono); font-size: 10.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  /* inspector — right drawer */
+  #inspector { right: 18px; top: 246px; bottom: 18px; width: 372px; padding: 14px 16px; overflow: auto; display: none; }
+  #inspector.open { display: block; }
+  #inspector .close { position: absolute; right: 10px; top: 8px; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; }
+  #inspector h2 { font-family: var(--serif); font-weight: 500; font-size: 19px; line-height: 1.2; margin: 4px 24px 6px 0; text-wrap: balance; }
+  #inspector .meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-family: var(--mono); font-size: 10.5px; margin: 8px 0 10px; }
+  #inspector .meta .k { color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 9.5px; padding-top: 2px; }
+  #inspector .meta .v { color: var(--ink); overflow-wrap: anywhere; }
+  #inspector .span { font-family: var(--serif); font-size: 14px; line-height: 1.45; color: var(--ink); border-left: 2px solid var(--rule); padding: 2px 0 2px 12px; margin: 6px 0 12px; white-space: pre-wrap; max-width: 62ch; }
+  #inspector .nb { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+  #inspector .nb li { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: baseline; padding: 4px 6px; border: 1px solid var(--rule-soft); cursor: pointer; }
+  #inspector .nb li:hover { border-color: var(--rule); background: var(--chip); }
+  #inspector .nb .who { font-size: 12px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #inspector .nb .who small { color: var(--muted); }
+  #inspector .nb .w { font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #inspector .nb li.br .w { color: var(--amber); }
+  /* bridges — bottom right */
+  #bridges { right: 18px; bottom: 18px; width: 330px; max-height: 34vh; padding: 12px 14px; overflow: auto; }
+  #bridges ol { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  #bridges li { display: grid; grid-template-columns: 1fr; gap: 1px; padding: 5px 6px; border: 1px solid var(--rule-soft); cursor: pointer; }
+  #bridges li:hover { border-color: rgba(255,180,84,0.5); background: var(--amber-soft); }
+  #bridges li .pair { font-size: 12px; color: var(--ink); display: flex; gap: 6px; align-items: baseline; }
+  #bridges li .pair .arrow { color: var(--amber); font-family: var(--mono); }
+  #bridges li .pair span:not(.arrow) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  #bridges li .sim { font-family: var(--mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; }
+  #tip { position: fixed; pointer-events: none; }
+  .scene-tip { font-family: var(--sans); font-size: 12px; background: var(--panel-solid); color: var(--ink); border: 1px solid var(--rule); padding: 6px 9px; max-width: 320px; }
+  .scene-tip small { color: var(--muted); display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; margin-top: 2px; }
+  @media (max-width: 900px) {
+    #title, #rail, #legend, #bridges, #inspector { width: calc(100vw - 36px); }
+    #rail { top: auto; bottom: 18px; }
+    #legend, #bridges { display: none; }
+    #inspector { top: 18px; bottom: auto; max-height: 60vh; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="scene" aria-label="3-D connectome of the estate's documents"></div>
+
+<section id="title" class="panel">
+  <div class="label">Connectome · R0 · DWG-005 · a first render</div>
+  <h1>The estate, <em>rendered</em></h1>
+  <p class="sub">Every chunk a point placed by its meaning; every line a relation; the amber lines are bridges — high similarity across different communities.</p>
+  <div class="grid" id="stats"></div>
+  <div class="note">SCALE: NONE · positions are a view of a 1024-d field; the field is the truth; the tape is the proof. Local embedder, nothing left the box.</div>
+</section>
+
+<section id="rail" class="panel" aria-label="controls">
+  <div id="search">
+    <input id="q" type="text" placeholder="search titles, sections, text — Enter flies to the first hit" aria-label="search">
+    <button id="go">FIND</button>
+  </div>
+  <div id="hits"></div>
+  <div class="label">layers</div>
+  <div class="chips" id="layers">
+    <span class="chip on" data-l="sem" tabindex="0"><i class="sw"></i>semantic</span>
+    <span class="chip on" data-l="doc" tabindex="0"><i class="sw"></i>documents</span>
+    <span class="chip" data-l="lex" tabindex="0"><i class="sw"></i>lexical</span>
+    <span class="chip" data-l="con" tabindex="0"><i class="sw"></i>containment</span>
+    <span class="chip" data-l="suc" tabindex="0"><i class="sw"></i>succession</span>
+    <span class="chip bridge on" data-l="br" tabindex="0"><i class="sw"></i>bridges</span>
+    <span class="chip" data-l="dup" tabindex="0"><i class="sw"></i>retellings</span>
+  </div>
+  <div class="label">geometry</div>
+  <div class="chips" id="geom">
+    <span class="chip on" data-g="euclid" tabindex="0">euclidean</span>
+    <span class="chip" data-g="poincare" tabindex="0">poincaré ball · the slide rule</span>
+  </div>
+  <div class="label">time — the estate growing</div>
+  <div id="time">
+    <button class="btn" id="play" aria-label="play the growth of the estate">PLAY</button>
+    <input id="tslider" type="range" min="0" max="100" value="100" aria-label="date cutoff">
+    <span class="t" id="tlabel"></span>
+  </div>
+</section>
+
+<section id="legend" class="panel" aria-label="communities">
+  <div class="label">communities (Louvain on the document graph) · click to hide</div>
+  <ul id="comms"></ul>
+</section>
+
+<section id="bridges" class="panel" aria-label="bridges">
+  <div class="label">bridges · similar meaning, different community</div>
+  <ol id="brlist"></ol>
+</section>
+
+<aside id="inspector" class="panel" aria-label="inspector">
+  <button class="close" id="closeInsp" aria-label="close">×</button>
+  <div class="label" id="ikind"></div>
+  <h2 id="ititle"></h2>
+  <div class="meta" id="imeta"></div>
+  <div class="label">first 700 characters, verbatim</div>
+  <div class="span" id="ispan"></div>
+  <div class="label">neighbors</div>
+  <ul class="nb" id="inb"></ul>
+</aside>
+
+<script id="scene-data" type="application/json">/*__SCENE_JSON__*/</script>
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.0/dist/3d-force-graph.min.js"></script>
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('scene-data').textContent);
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var PAL = ['#56B4E9','#8CD9A7','#E39BDA','#F5CF78','#98A6FF','#FF9A8B','#6FD6D0','#C9B6FF','#B6D96A','#FFB0C8','#7CC4FF','#D9C6A0','#9AD1FF','#A8E0B8','#F0B8E4','#FFE3A1'];
+  var AMBER = '#FFB454';
+  var commColor = function (c) { return PAL[c % PAL.length]; };
+  var byId = {};
+  DATA.nodes.forEach(function (n) { byId[n.id] = n; n.fx = n.x; n.fy = n.y; n.fz = n.z; });
+  var commLabel = {};
+  DATA.comms.forEach(function (c) { commLabel[c.id] = c.label; });
+
+  // ---- time axis ----
+  function dayIndex(t) { return Math.round(Date.parse(t + 'T00:00:00Z') / 86400000); }
+  var d0 = dayIndex(DATA.meta.date_min), d1 = dayIndex(DATA.meta.date_max);
+  DATA.nodes.forEach(function (n) { n.day = dayIndex(n.t); });
+  var slider = document.getElementById('tslider'), tlabel = document.getElementById('tlabel');
+  slider.min = d0; slider.max = d1; slider.value = d1;
+  var cutoff = d1;
+  function fmtDay(d) { return new Date(d * 86400000).toISOString().slice(0, 10); }
+  tlabel.textContent = fmtDay(cutoff);
+
+  // ---- layer + community + search state ----
+  var layers = { sem: true, doc: true, lex: false, con: false, suc: false, br: true, dup: false };
+  var hiddenComms = {};
+  var highlight = null; // Set of node ids
+  var selected = null;
+
+  function nodeVisible(n) {
+    if (n.day > cutoff) return false;
+    if (hiddenComms[n.c]) return false;
+    return true;
+  }
+  function linkVisible(l) {
+    var a = typeof l.a === 'object' ? l.a : byId[l.a], b = typeof l.b === 'object' ? l.b : byId[l.b];
+    if (!nodeVisible(a) || !nodeVisible(b)) return false;
+    if (l.br) return layers.br || layers[l.l];
+    return !!layers[l.l];
+  }
+  function nodeColor(n) {
+    if (highlight) return highlight.has(n.id) ? '#FFFFFF' : 'rgba(80,100,130,0.35)';
+    if (selected && selected.id === n.id) return '#FFFFFF';
+    return commColor(n.c);
+  }
+  function nodeVal(n) { return n.k === 'd' ? 5 + 1.6 * Math.log(1 + n.tk / 800) : 0.6; }
+  function linkColor(l) {
+    if (l.br) return AMBER;
+    if (l.l === 'sem') return 'rgba(120,160,210,0.55)';
+    if (l.l === 'doc') return 'rgba(200,215,235,0.7)';
+    if (l.l === 'lex') return 'rgba(232,155,218,0.55)';
+    if (l.l === 'con') return 'rgba(80,110,150,0.25)';
+    if (l.l === 'dup') return 'rgba(150,160,175,0.45)';
+    return 'rgba(245,207,120,0.6)';
+  }
+  function linkWidth(l) { return l.br ? 1.1 : (l.l === 'doc' ? 0.9 : (l.l === 'con' ? 0.2 : (l.l === 'dup' ? 0.35 : 0.45))); }
+
+  var el = document.getElementById('scene');
+  var Graph = ForceGraph3D()(el)
+    .backgroundColor('#0A1424')
+    .showNavInfo(false)
+    .nodeId('id')
+    .linkSource('a').linkTarget('b')
+    .nodeVal(nodeVal)
+    .nodeColor(nodeColor)
+    .nodeOpacity(0.92)
+    .nodeResolution(10)
+    .nodeVisibility(nodeVisible)
+    .linkVisibility(linkVisible)
+    .linkColor(linkColor)
+    .linkWidth(linkWidth)
+    .linkOpacity(0.5)
+    .linkDirectionalParticles(function (l) { return (!reduced && l.br) ? 2 : 0; })
+    .linkDirectionalParticleSpeed(0.004)
+    .linkDirectionalParticleWidth(1.4)
+    .linkDirectionalParticleColor(function () { return AMBER; })
+    .enableNodeDrag(false)
+    .cooldownTicks(0)
+    .warmupTicks(0)
+    .nodeLabel(function (n) {
+      var t = n.k === 'd' ? n.n : (n.n + (n.s ? ' › ' + n.s : ''));
+      return '<div class="scene-tip">' + esc(t) + '<small>' + esc(n.p) + ' · ' + esc(n.t) + ' · ' + esc(commLabel[n.c] || '') + '</small></div>';
+    })
+    .onNodeClick(function (n) { select(n); flyTo(n); })
+    .onBackgroundClick(function () { clearHighlight(); });
+  Graph.graphData({ nodes: DATA.nodes, links: DATA.links });
+  Graph.cameraPosition({ x: 0, y: 0, z: 760 });
+  window.__cx = { data: DATA, graph: Graph };   // a debug handle for headless checks; no UI depends on it
+  if (!reduced) {
+    var ctl = Graph.controls(); if (ctl) { ctl.autoRotate = true; ctl.autoRotateSpeed = 0.25; }
+    el.addEventListener('pointerdown', function () { var c = Graph.controls(); if (c) c.autoRotate = false; }, { once: true });
+  }
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function refresh() { Graph.nodeColor(nodeColor); Graph.nodeVisibility(nodeVisible); Graph.linkVisibility(linkVisible); }
+  function flyTo(n) {
+    var dist = 120, r = Math.hypot(n.x, n.y, n.z) || 1;
+    var ratio = 1 + dist / r;
+    Graph.cameraPosition({ x: n.x * ratio, y: n.y * ratio, z: n.z * ratio }, { x: n.x, y: n.y, z: n.z }, reduced ? 0 : 1200);
+  }
+  function clearHighlight() { highlight = null; refresh(); document.getElementById('hits').textContent = ''; }
+
+  // ---- stats ----
+  var m = DATA.meta;
+  var stats = [['files', m.files], ['chunks', m.chunks], ['relations', m.links], ['communities', m.communities], ['bridges', m.bridges],
+               ['dates', m.date_min + ' → ' + m.date_max], ['tokens', Math.round(m.tokens / 1000) + 'k'], ['embedder', m.embedder], ['layout', m.layout], ['built', m.built]];
+  document.getElementById('stats').innerHTML = stats.map(function (r) { return '<span class="k">' + esc(r[0]) + '</span><span class="v">' + esc(r[1]) + '</span>'; }).join('');
+
+  // ---- legend ----
+  var ul = document.getElementById('comms');
+  DATA.comms.forEach(function (c) {
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="dot" style="background:' + commColor(c.id) + '"></span><span class="lab">' + esc(c.label) + '</span><span class="n">' + c.n + ' docs</span>';
+    li.tabIndex = 0;
+    var toggle = function () { hiddenComms[c.id] = !hiddenComms[c.id]; li.classList.toggle('off', !!hiddenComms[c.id]); refresh(); };
+    li.addEventListener('click', toggle);
+    li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    ul.appendChild(li);
+  });
+
+  // ---- layers ----
+  Array.prototype.forEach.call(document.querySelectorAll('#layers .chip'), function (ch) {
+    var toggle = function () { var l = ch.getAttribute('data-l'); layers[l] = !layers[l]; ch.classList.toggle('on', layers[l]); refresh(); };
+    ch.addEventListener('click', toggle);
+    ch.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  });
+
+  // ---- geometry: Euclidean UMAP-3 or the Poincare ball (radius = the slide rule; documents one level inward) ----
+  var hasHyper = DATA.nodes.length && DATA.nodes[0].hx !== undefined;
+  Array.prototype.forEach.call(document.querySelectorAll('#geom .chip'), function (ch) {
+    var pick = function () {
+      var g = ch.getAttribute('data-g');
+      if (g === 'poincare' && !hasHyper) { document.getElementById('hits').textContent = 'this build has no hyperbolic positions; rebuild with the organ'; return; }
+      Array.prototype.forEach.call(document.querySelectorAll('#geom .chip'), function (o) { o.classList.toggle('on', o === ch); });
+      DATA.nodes.forEach(function (n) {
+        if (g === 'poincare') { n.fx = n.x = n.hx; n.fy = n.y = n.hy; n.fz = n.z = n.hz; }
+        else { n.fx = n.x = n.ex; n.fy = n.y = n.ey; n.fz = n.z = n.ez; }
+      });
+      Graph.graphData({ nodes: DATA.nodes, links: DATA.links });
+    };
+    ch.addEventListener('click', pick);
+    ch.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  });
+  DATA.nodes.forEach(function (n) { n.ex = n.x; n.ey = n.y; n.ez = n.z; });
+
+  // ---- time ----
+  var playing = null;
+  slider.addEventListener('input', function () { cutoff = +slider.value; tlabel.textContent = fmtDay(cutoff); refresh(); });
+  document.getElementById('play').addEventListener('click', function () {
+    var btn = this;
+    if (playing) { clearInterval(playing); playing = null; btn.textContent = 'PLAY'; return; }
+    cutoff = d0; slider.value = d0; btn.textContent = 'STOP';
+    playing = setInterval(function () {
+      cutoff += 1; slider.value = cutoff; tlabel.textContent = fmtDay(cutoff); refresh();
+      if (cutoff >= d1) { clearInterval(playing); playing = null; btn.textContent = 'PLAY'; }
+    }, reduced ? 60 : 180);
+  });
+
+  // ---- search ----
+  function doSearch() {
+    var q = document.getElementById('q').value.trim().toLowerCase();
+    if (!q) { clearHighlight(); return; }
+    var hits = DATA.nodes.filter(function (n) {
+      return (n.n && n.n.toLowerCase().indexOf(q) >= 0) || (n.s && n.s.toLowerCase().indexOf(q) >= 0) || (n.sn && n.sn.toLowerCase().indexOf(q) >= 0);
+    });
+    highlight = new Set(hits.map(function (n) { return n.id; }));
+    // also light the parent documents of matching chunks
+    hits.forEach(function (n) { if (n.d) highlight.add(n.d); });
+    refresh();
+    document.getElementById('hits').textContent = hits.length ? hits.length + ' matches — flying to the first' : 'no matches';
+    var first = hits.find(function (n) { return n.k === 'c'; }) || hits[0];
+    if (first) { select(first); flyTo(first); }
+  }
+  document.getElementById('go').addEventListener('click', doSearch);
+  document.getElementById('q').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); if (e.key === 'Escape') { this.value = ''; clearHighlight(); } });
+
+  // ---- inspector ----
+  var insp = document.getElementById('inspector');
+  document.getElementById('closeInsp').addEventListener('click', function () { insp.classList.remove('open'); selected = null; refresh(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { insp.classList.remove('open'); selected = null; refresh(); } });
+  function neighborsOf(n) {
+    var out = [];
+    DATA.links.forEach(function (l) {
+      var a = typeof l.a === 'object' ? l.a : byId[l.a], b = typeof l.b === 'object' ? l.b : byId[l.b];
+      if (l.l === 'con') return;
+      if (a.id === n.id) out.push({ o: b, l: l }); else if (b.id === n.id) out.push({ o: a, l: l });
+    });
+    out.sort(function (p, q) { return (q.l.br ? 1 : 0) - (p.l.br ? 1 : 0) || q.l.w - p.l.w; });
+    return out.slice(0, 14);
+  }
+  function select(n) {
+    selected = n;
+    insp.classList.add('open');
+    document.getElementById('ikind').textContent = (n.k === 'd' ? 'document' : 'chunk') + ' · ' + n.p + ' · community ' + n.c;
+    document.getElementById('ititle').textContent = n.k === 'd' ? n.n : (n.s || n.n);
+    var meta = [['document', n.n], ['date', n.t], ['tokens', n.tk], ['community', commLabel[n.c] || '']];
+    if (n.k === 'd') meta.push(['chunks', n.nc], ['path', n.f]);
+    document.getElementById('imeta').innerHTML = meta.map(function (r) { return '<span class="k">' + esc(r[0]) + '</span><span class="v">' + esc(r[1]) + '</span>'; }).join('');
+    document.getElementById('ispan').textContent = n.k === 'd' ? '(a document node — click one of its chunks, or a neighbor, to read a span)' : n.sn;
+    var nb = document.getElementById('inb'); nb.innerHTML = '';
+    neighborsOf(n).forEach(function (p) {
+      var li = document.createElement('li'); if (p.l.br) li.className = 'br';
+      var who = p.o.k === 'd' ? p.o.n : (p.o.n + ' <small>› ' + esc(p.o.s || '') + '</small>');
+      li.innerHTML = '<span class="who">' + (p.o.k === 'd' ? esc(who) : esc(p.o.n) + ' <small>› ' + esc(p.o.s || '') + '</small>') + '</span><span class="w">' + (p.l.br ? 'BRIDGE ' : p.l.l + ' ') + p.l.w + '</span>';
+      li.addEventListener('click', function () { select(p.o); flyTo(p.o); });
+      nb.appendChild(li);
+    });
+    refresh();
+  }
+
+  // ---- bridges list ----
+  var ol = document.getElementById('brlist');
+  DATA.links.filter(function (l) { return l.br; }).sort(function (p, q) { return q.w - p.w; }).slice(0, 60).forEach(function (l) {
+    var a = byId[l.a], b = byId[l.b];
+    var li = document.createElement('li');
+    li.innerHTML = '<div class="pair"><span>' + esc(a.n) + '</span><span class="arrow">⟷</span><span>' + esc(b.n) + '</span></div><div class="sim">cos ' + l.w + ' · ' + esc((commLabel[a.c] || '').split(' · ')[0]) + ' ↔ ' + esc((commLabel[b.c] || '').split(' · ')[0]) + '</div>';
+    li.addEventListener('click', function () { select(a); flyTo(a); });
+    ol.appendChild(li);
+  });
+})();
+</script>
