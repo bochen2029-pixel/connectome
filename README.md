@@ -4,6 +4,8 @@
 
 It is not a note-taking graph. A graph of hand-made links with a force layout carries no meaning in its positions, is read by nothing, and changes nothing. This is a fitted field with a gate on the door and a null it can lose to.
 
+**Design of record: [`docs/CONNECTOME_v5.5_THE-FIELD_2026-09-03.md`](docs/CONNECTOME_v5.5_THE-FIELD_2026-09-03.md)** — the September-2026 state of the art (embedders, two-pass int8 scan, frozen versioned partition, Lorentz map with radius = resolution, residual attention loop, the rescan, the sentry on Intercom, WebGPU render, stateless MCP) with every number tagged measured, verified, derived, or bet. The organ below is the v0.1 implementation it upgrades; `NEXT.md` carries the build order.
+
 ## What it does today (v0.1 organ, R1)
 
 ```
