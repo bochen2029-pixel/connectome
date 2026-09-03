@@ -19,9 +19,16 @@
 5. **Render work only after function:** true level radius in the Poincaré ball, anchored re-layout (F-LAYOUT-STABLE), the 3-D versus 2-D test on the operator (F-3D-VS-2D).
 6. **Corpus #1 last:** ≈ 10 h of local embedding for the 172-million-token extracted tape, only after steps 1–3 have receipts.
 
-Two small things on the way: replace the hard-coded `ROOTS` with a manifest fed by facet tapes (`facet --paths ...`), so adding documents is a query rather than an edit; and let the chunker's `--overlap 0` fix land so the build can drop the `--overlap 40` workaround.
+Four small things on the way, in this order. Two of them are corrections forced by the full read of CORTEX v5 rev 2 (see the notes file below), which should have happened before the design was written:
+
+1. **Freeze the partition.** The build re-runs Louvain every time, so community labels and colours reshuffle between builds and the "stable map" promise is already broken. CORTEX I-V5-PARTITION: the partition is a versioned artifact; new chunks go to the nearest centroid; re-partition is a gated event with a distinctness report. Required before F-LAYOUT-STABLE can mean anything.
+2. **The instruct-prefix bake-off.** qwen3-embedding is trained with an instruction prefix on the query side; the organ embeds queries and documents identically. Fifty goldens, prefix versus none, one afternoon.
+3. Replace the hard-coded `ROOTS` with a manifest fed by facet tapes (`facet --paths ...`), so adding documents is a query rather than an edit.
+4. Let the chunker's `--overlap 0` fix land so the build can drop the `--overlap 40` workaround.
 
 **What not to do:** no v0.4, no new stratum, no second product surface until F-REFEED and F-VINTAGE have numbers.
+
+**Read also:** `docs/NOTES_BRAIN-HYPERCELL-HYPERCOM_2026-09-02.md` — the primer answer (a precomputed connectome is a valid primer; the deterministic layer does not age with models), the lag on Intercom diagnosed as composition plus polling plus per-look cost rather than the single writer, the **resident bus lane** (one FUSOR resident on Intercom at world rate, composing and routing by residual for turn-based subagents that keep their turns), and what the full reads of CORTEX v5 rev 2, HYPERCELL, BRAIN, and the Scriptorium protocol add and correct.
 
 ## How to start a session on this
 

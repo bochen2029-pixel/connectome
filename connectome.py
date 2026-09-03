@@ -491,7 +491,19 @@ def ask(q, k=8, as_json=False):
                 j = int(nb[1:])
                 rrf[j] = rrf.get(j, 0) + 0.35 * rrf[i] * w
     top = sorted(rrf, key=lambda i: -rrf[i])[:k]
-    plan = dict(query=q, kind="read_plan", note="spans, never an answer; cite path + section", spans=[])
+    # BRAIN §D2: stamps on every memory-backed answer; the graph pays rent or steps aside; quantifiers pin to >= R3
+    lex_set, vec_set = set(int(i) for i in lex_rank if bm[i] > 0), set(int(i) for i in vec_rank)
+    graph_added = [i for i in top if i not in lex_set and i not in vec_set]
+    quantifier = re.search(r"\b(every|all|none|count|how many|how often|distribution|always|never)\b", q, re.I) is not None
+    plan = dict(query=q, kind="read_plan", note="spans, never an answer; cite path + section", spans=[],
+                stamps=dict(rungs=["R1 lexical (BM25)", "R2 vector (cosine, brute-force scan)", "R1+ graph elevation (one hop)"],
+                            coverage=dict(chunks_scanned=int(F.X.shape[0]), chunks_in_field=int(F.X.shape[0]), exact=True),
+                            graph_rent=dict(spans_added_by_graph=len(graph_added), of=len(top)),
+                            provenance="H (operator-authored documents) unless the span is a transcript hit (R/M)",
+                            fidelity="partial: top-k spans, not a sweep", cost_usd=0.0))
+    if quantifier:
+        plan["insufficient_rung"] = ("this question quantifies over the corpus (every/all/none/count); a top-k read plan cannot answer it. "
+                                     "Required: an R3 scoped sweep over the topic's chunks (dossier --topic, then read every span) or R4 full sweep.")
     for i in top:
         s = F.span(i)
         s.update(score=round(rrf[i], 4), cosine=round(float(sims[i]), 3), bm25=round(float(bm[i]), 2))
