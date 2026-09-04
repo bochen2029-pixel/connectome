@@ -130,8 +130,8 @@ Every path returns **bit-identical** scores: int32 sums of int8 products with a 
 
 Each milestone has a gate that exits 0 or the milestone is not done. A session reads the spec, the receipt, and the gate log, and continues.
 
-- **M0 · Native skeleton** — CMake in the operator's conventions (archs 89/90/120, static runtimes), tape reader, int8 two-pass scan, `doctor`. *Gate: byte-identical scans across runs and against the reference.*
-- **M1 · The loss** — temporal-holdout harness (build before *t*, score after *t*, shuffled control); the embedder, prefix, and chunk-size questions answered by future residual.
+- **M0 · Native skeleton ✓** — CMake in the operator's conventions (archs 89/90/120, static runtimes), tape reader, int8 two-pass scan, `doctor`. *Gate: byte-identical scans across runs and against the reference.*
+- **M1 · The loss ✓** — temporal-holdout harness (build before *t*, score after *t*, shuffled control), gated. Reproduces the convergence table above and detects the estate's one front: 2026-08-10, `MEANDER-SPEC` through the BLACKBOX burst, 21 documents. `harness/README.md` carries the receipt and the three defects fixed along the way. *Carried forward:* the embedder and chunk-size arms.
 - **M2 · The frozen field** — consensus Leiden partition v1, assignment + bounded refinement, drift meter, provenance slice, position ledger with typed operators and audit rows.
 - **M3 · The map and the viewer** — UMAP-3 angles, analytic Lorentz placement, Procrustes + hysteresis, native viewer at 60 fps.
 - **M4 · Attention** — learned quantiles, fronts, vigilance, habituation, typed deltas, unit map with diff, pages.
