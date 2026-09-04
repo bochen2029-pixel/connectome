@@ -104,15 +104,18 @@ claude mcp add connectome -- python C:/connectome/connectome.py mcp
 
 **Not yet built:** the frozen versioned partition, the analytic Lorentz placement, the position ledger, the sentry on the bus, the native viewer, and the 10¹⁰-token tier. Those are the milestones below. The browser page shipped here is a prototype and becomes a thin export.
 
-### The native core — M0 gate passing
+### The native core and the harness — M0 and M1 gates passing
 
 [`native/`](native/) holds the C++20/CUDA core, built in the operator's own conventions (archs 89/90/120, static runtimes, Ninja from the VS 2022 environment, machine-checkable gates).
 
 ```powershell
 scripts\build.ps1 -Native          # configure + build for this machine's GPU
 scripts\gate.ps1 -Milestone M0     # 5/5 ctest, cross-process digest equality, doctor
+scripts\gate.ps1 -Milestone M1     # + harness self-tests, F-CONVERGE, front detection
 build\cx.exe doctor                # what this machine has and is missing
 build\cx.exe bench --n 2000000     # the two-pass scan, measured
+python -m harness.run converge     # arrival order vs shuffled controls, by decile
+python -m harness.run fronts       # where this corpus changed subject
 ```
 
 The int8 two-pass scan is implemented and gated. Measured on this box, 2026-09-03:
@@ -123,6 +126,8 @@ The int8 two-pass scan is implemented and gated. Measured on this box, 2026-09-0
 | 2M chunks (244 MiB) | 68.37 ms | 88.61 ms | **2.02 ms — 118 GiB/s** |
 
 Every path returns **bit-identical** scores: int32 sums of int8 products with a fixed-topology warp reduction and no float atomics, so determinism is a property of the arithmetic rather than a tolerance. An exact brute-force scan of two million chunks in two milliseconds is why there is no ANN index here to build, tune, or let rot. The middle column is kept in the benchmark on purpose: copying the matrix per query loses to the CPU, which is precisely the shape the design refuses.
+
+[`harness/`](harness/) is the loss the rest of the design is tuned against, and it is gated too: it must never look forward (truncating the corpus cannot change the scores of the documents that remain), must not depend on its own block size, must recover a planted front, and must survive the degenerate corpora that broke its first version. Run on the estate it reproduces the table at the top of this page and finds **one front** — 2026-08-10, `MEANDER-SPEC` through the BLACKBOX burst, 21 documents — sitting exactly in the deciles where the shuffled control wins, so the loss and the detector agree from independent directions. Three defects were fixed rather than tuned around along the way; [`harness/README.md`](harness/README.md) keeps them on the record, because the corrections are findings.
 
 ---
 
