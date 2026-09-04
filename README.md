@@ -137,7 +137,7 @@ Each milestone has a gate that exits 0 or the milestone is not done. A session r
 
 - **M0 · Native skeleton ✓** — CMake in the operator's conventions (archs 89/90/120, static runtimes), tape reader, int8 two-pass scan, `doctor`. *Gate: byte-identical scans across runs and against the reference.*
 - **M1 · The loss ✓** — temporal-holdout harness (build before *t*, score after *t*, shuffled control), gated. Reproduces the convergence table above and detects the estate's one front: 2026-08-10, `MEANDER-SPEC` through the BLACKBOX burst, 21 documents. `harness/README.md` carries the receipt and the three defects fixed along the way. *Carried forward:* the embedder and chunk-size arms.
-- **M2 · The frozen field** — consensus Leiden partition v1, assignment + bounded refinement, drift meter, provenance slice, position ledger with typed operators and audit rows.
+- **M2 · The frozen field ✓** — consensus Leiden partition, assignment with a real overflow bucket, the drift meter, and the provenance slice, gated. Under +10/20/40 % growth the frozen map moves **0 %** of its members where re-clustering moves **17–21 %**; consensus lifts seed stability from 0.73–0.86 to 0.895; 4,136 exact-n-gram edges trace 213 of 264 documents to the sessions that wrote them. *Carried forward:* super-communities, bounded refinement, the position ledger.
 - **M3 · The map and the viewer** — UMAP-3 angles, analytic Lorentz placement, Procrustes + hysteresis, native viewer at 60 fps.
 - **M4 · Attention** — learned quantiles, fronts, vigilance, habituation, typed deltas, unit map with diff, pages.
 - **M5 · The rescan** — skeleton → surgical reads → fence-derived spans → reprojection → vintage and diff.

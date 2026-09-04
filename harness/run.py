@@ -21,6 +21,9 @@ from .corpus import load_store
 from .embed import server_model
 from .fronts import detect
 from .loss import converge, residual_curve
+from . import partition as P
+from . import stability as S
+from . import provenance as PV
 
 
 def _corpus(args):
@@ -104,6 +107,69 @@ def cmd_report(args) -> int:
     return 0
 
 
+def cmd_partition(args) -> int:
+    c = _corpus(args)
+    part = P.build(c.vectors, n_seeds=args.seeds, seed=args.seed)
+    print("")
+    print(f"partition/v{part.version}: {part.centroids.shape[0]} communities")
+    print(f"  modularity        {part.modularity:.3f}")
+    print(f"  co-classification {part.co_classification:.3f} over {part.n_seeds} runs")
+    print(f"  drift on its own corpus {P.drift(part, c.vectors):.3f}")
+    print(f"  largest communities {np.sort(part.sizes)[::-1][:8].tolist()}")
+    return 0
+
+
+def cmd_stability(args) -> int:
+    """F-LAYOUT-STABLE: does freezing beat re-clustering as the corpus grows?"""
+    c = _corpus(args)
+    mean, worst = S.seed_stability(c.vectors, seeds=3, n_seeds=args.seeds)
+    print("")
+    print(f"consensus partitioning across 3 base seeds: ARI mean {mean:.3f}, worst {worst:.3f}")
+    print("")
+    print("  growth   frozen ARI   re-fit ARI   frozen moved   re-fit moved   drift")
+    for frac in (0.9, 0.8, 0.6):
+        r = S.grow(c, base_fraction=frac, n_seeds=args.seeds, seed=args.seed)
+        print(
+            f"   {r.grown_fraction:4.0%}      {r.frozen_ari:.3f}        {r.refit_ari:.3f}"
+            f"         {r.frozen_moved:5.1%}         {r.refit_moved:5.1%}      "
+            f"{r.frozen_drift:.3f}"
+        )
+    print("")
+    print("  reading: assignment to a frozen partition moves nothing, while re-clustering")
+    print("  the grown corpus moves a fifth of it.  Drift is the price, and it is reported")
+    print("  rather than hidden: it is what a version event fires on.")
+    return 0
+
+
+def cmd_provenance(args) -> int:
+    """The slice that states causation rather than similarity, and costs nothing."""
+    import json as _json
+
+    c = _corpus(args)
+    with open(f"{args.store}/index.json", encoding="utf-8") as fh:
+        index = _json.load(fh)
+
+    messages = index.get("transcripts") or []
+    if not messages:
+        print("no transcripts in this store; the provenance slice needs sessions")
+        return 0
+
+    edges = PV.link(
+        [ch["text"] for ch in index["chunks"]],
+        [m.get("text", "") for m in messages],
+        [str(m.get("session", "?")) for m in messages],
+    )
+    linked = {int(c.doc_of_chunk[e.chunk]) for e in edges}
+    print("")
+    print(f"{len(edges)} provenance edges over {len(messages)} messages")
+    print(f"{len(linked)} of {len(c.documents)} documents trace to a session")
+    strongest = sorted(edges, key=lambda e: -e.shared)[:5]
+    for e in strongest:
+        doc = c.documents_by_id[int(c.doc_of_chunk[e.chunk])]
+        print(f"  {e.shared:4d} shared 12-grams  {doc.name[:44]}  <- {e.session[:12]}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     # Common flags are attached to every subparser as well as the parent, so
     # `run converge --shuffles 3` and `run --shuffles 3 converge` both work.  A CLI
@@ -120,8 +186,21 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--window", type=int, default=8)
     f.add_argument("--trailing", type=int, default=40)
     sub.add_parser("report", parents=[common])
+    pp = sub.add_parser("partition", parents=[common])
+    pp.add_argument("--seeds", type=int, default=10)
+    st = sub.add_parser("stability", parents=[common])
+    st.add_argument("--seeds", type=int, default=6)
+    sub.add_parser("provenance", parents=[common])
     args = p.parse_args(argv)
-    return {"converge": cmd_converge, "fronts": cmd_fronts, "report": cmd_report}[args.cmd](args)
+    table = {
+        "converge": cmd_converge,
+        "fronts": cmd_fronts,
+        "report": cmd_report,
+        "partition": cmd_partition,
+        "stability": cmd_stability,
+        "provenance": cmd_provenance,
+    }
+    return table[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -77,3 +77,55 @@ harness/
   run.py            the CLI
   test_harness.py   acceptance tests
 ```
+
+## M2 receipt — the frozen field, 2026-09-03
+
+Gate: **PASS** (`scripts/gate.ps1 -Milestone M2`). The claim under test is the one the map's
+identity rests on: that a partition frozen and grown by *assignment* stays still, where
+re-clustering the grown corpus does not.
+
+### F-LAYOUT-STABLE, on the estate
+
+| growth | frozen ARI | re-fit ARI | frozen moved | re-fit moved | drift after |
+|---|---|---|---|---|---|
+| +10 % | **1.000** | 0.748 | **0.0 %** | 16.9 % | 0.253 |
+| +20 % | **1.000** | 0.670 | **0.0 %** | 20.9 % | 0.278 |
+| +40 % | **1.000** | 0.678 | **0.0 %** | 21.1 % | 0.302 |
+
+Re-clustering moves roughly a fifth of the corpus every time it runs. Assignment moves nothing,
+by construction. The comparison is deliberately unkind to the freeze: ARI is computed on the
+chunks both arms share, so refusing to place anything earns no credit, and the re-fit arm gets
+the same ten-seed consensus treatment rather than a single seed, so it is not a strawman built
+from a worse algorithm.
+
+**Consensus is what makes the freeze worth having.** A single Leiden run is one sample from a
+distribution of near-optimal partitions; ten runs agreeing about a pair of nodes is evidence
+about the corpus, while one run agreeing with itself is evidence about a seed. Measured: plain
+Leiden scored ARI 0.73–0.86 across seeds on this corpus, consensus scores **0.895 mean, 0.882
+worst**, and the resulting partition/v1 has 70–73 communities at modularity 0.86 with the ten
+runs concurring on **90.7 %** of edges.
+
+**Drift is the price, and it is reported rather than hidden.** By +40 % growth, 30 % of members
+are nearer some other centroid than their own. That number is not a failure — it is exactly what
+a version event fires on, and a partition that pretended otherwise would be lying about when it
+needs rebuilding.
+
+### The provenance slice
+
+**4,136 edges** linking **213 of 264 documents** to the sessions that produced them, from exact
+12-gram matches over 17,828 transcript messages. No model, no threshold, no judgement: a long
+n-gram of ordinary prose recurring verbatim across two sources is not a coincidence at corpus
+scale. Spot-checked, the strongest edges land on the exact message where each document was
+written (`21_THE_SOMEWHERE` ← 389 shared grams, `MARU_EXPERIENCE_ONEPAGER_v2` ← 354).
+
+This is the only slice that states **causation** rather than similarity, which is why the spec
+builds its free goldens from it — and why it needs no corroboration to be trusted.
+
+### What the tests guard
+
+`test_partition.py` checks what would make the freeze a lie: that planted clusters are recovered
+(ARI > 0.95), that the same seed gives an identical partition and the kNN graph does not depend
+on its block size, that consensus is at least as stable as single seeds, that **assignment never
+moves an existing member**, that a flood of near-identical chunks **overflows** rather than
+silently stretching a community past its cap, that the drift meter stays quiet on a corpus that
+has not moved and rises when it has, and that the estate reproduces the growth result above.

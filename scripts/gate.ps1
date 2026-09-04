@@ -13,10 +13,15 @@
 # and must survive the degenerate corpora that broke the first detector.  Then it is
 # run on the real corpus, where F-CONVERGE either reproduces or refutes the finding
 # the whole design rests on.
+#
+# M2 (spec sections 6.2 and 6.3): the map holds still.  A partition that reshuffles on
+# every rebuild cannot carry an identity, so the frozen artifact must beat re-clustering
+# under real growth - measured on the corpus, not asserted - and the provenance slice
+# must find the sessions that produced the documents.
 
 [CmdletBinding()]
 param(
-    [ValidateSet('M0','M1')]
+    [ValidateSet('M0','M1','M2')]
     [string]$Milestone = 'M0',
     [switch]$SkipBuild
 )
@@ -71,7 +76,7 @@ Step 'doctor (informational)' {
     $global:LASTEXITCODE = 0
 }
 
-if ($Milestone -eq 'M1') {
+if ($Milestone -in 'M1','M2') {
     Step 'harness self-tests' {
         Push-Location $repo
         try { python -m harness.test_harness } finally { Pop-Location }
@@ -96,6 +101,31 @@ if ($Milestone -eq 'M1') {
             $out = python -m harness.run fronts 2>&1
             $out | ForEach-Object { Write-Host "   $_" }
             if ($LASTEXITCODE -ne 0) { throw 'fronts failed' }
+        } finally { Pop-Location }
+    }
+}
+
+if ($Milestone -eq 'M2') {
+    Step 'partition self-tests' {
+        Push-Location $repo
+        try { python -m harness.test_partition } finally { Pop-Location }
+    }
+
+    Step 'F-LAYOUT-STABLE on the live corpus' {
+        Push-Location $repo
+        try {
+            $out = python -m harness.run stability --seeds 6 2>&1
+            $out | ForEach-Object { Write-Host "   $_" }
+            if ($LASTEXITCODE -ne 0) { throw 'stability failed' }
+        } finally { Pop-Location }
+    }
+
+    Step 'provenance slice' {
+        Push-Location $repo
+        try {
+            $out = python -m harness.run provenance 2>&1
+            $out | ForEach-Object { Write-Host "   $_" }
+            if ($LASTEXITCODE -ne 0) { throw 'provenance failed' }
         } finally { Pop-Location }
     }
 }
